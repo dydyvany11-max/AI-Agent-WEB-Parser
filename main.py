@@ -2,21 +2,17 @@
 
 import logging
 import re
-from typing import Dict, Any, List
 from fastapi import FastAPI, Form, HTTPException
-from pydantic import BaseModel, Field
 from crawler import fetch_page
 from analyzer import analyze_html
 from ai_agent import generate_audit
+from schema import AuditResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 app = FastAPI(title="AI-Agent WEB-Parsing")
 
-class AuditResponse(BaseModel):
-    audit: str = Field(..., title="Полный SEO аудит")
-    recommendations: str = Field(..., title="Текст рекомендаций") 
-    token_usage: Dict[str, Any] = Field(..., title="Статистика токенов")
+
 
 def extract_single_text_recommendations(text: str) -> str:
     collected = []
