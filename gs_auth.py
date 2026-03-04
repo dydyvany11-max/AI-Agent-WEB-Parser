@@ -1,3 +1,5 @@
+#Работа с токенами и аунтификацией нейронки
+
 import requests
 import time
 import uuid
@@ -10,6 +12,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 load_dotenv()
 
 _token = None
+
 _token_expire_time = 0
 
 

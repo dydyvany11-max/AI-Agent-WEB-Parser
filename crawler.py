@@ -1,3 +1,5 @@
+#Берется HTML с url которую дали
+
 import requests
 
 def fetch_page(url:str) -> str:

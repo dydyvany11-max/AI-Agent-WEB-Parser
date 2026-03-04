@@ -1,3 +1,5 @@
+# Схема ответа audit - ответ. token_usage сколько токенов ушло на ответ
+
 from pydantic import BaseModel
 from typing import Dict , Any
 

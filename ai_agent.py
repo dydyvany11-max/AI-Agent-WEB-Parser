@@ -1,3 +1,5 @@
+#Закидывается Парсинг весь В GigaChat
+
 import requests
 import logging
 from gs_auth import get_access_token
