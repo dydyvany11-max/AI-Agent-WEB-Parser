@@ -8,13 +8,11 @@ from dotenv import load_dotenv
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
 load_dotenv()
 
 _token = None
 
 _token_expire_time = 0
-
 
 def get_access_token():
     global _token, _token_expire_time
@@ -35,7 +33,7 @@ def get_access_token():
         "Authorization": f"Basic {os.getenv('GIGACHAT_AUTH_KEY')}"
     }
 
-    response = requests.post(url, headers=headers, data=payload, verify = False)
+    response = requests.post(url, headers=headers, data=payload, verify=False, timeout=20)
     response.raise_for_status()
 
     data = response.json()
