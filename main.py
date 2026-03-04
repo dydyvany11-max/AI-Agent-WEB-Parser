@@ -1,11 +1,8 @@
 import logging
 import re
 from typing import Dict, Any, List
-
 from fastapi import FastAPI, Form, HTTPException
 from pydantic import BaseModel, Field
-
-# Импорт твоих модулей
 from crawler import fetch_page
 from analyzer import analyze_html
 from ai_agent import generate_audit
@@ -15,7 +12,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-app = FastAPI(title="SEO Audit Service")
+app = FastAPI(title="AI-Agent WEB-Parsing")
 
 class AuditResponse(BaseModel):
     audit: str = Field(..., title="Полный SEO аудит")
@@ -23,25 +20,22 @@ class AuditResponse(BaseModel):
     token_usage: Dict[str, Any] = Field(..., title="Статистика токенов")
 
 def extract_clean_recommendations(text: str) -> List[str]:
-    """
-    Вырезает из большого текста только пункты из раздела 'Итоговые рекомендации'
-    """
+   
     recommendations = []
     lines = text.splitlines()
     in_block = False
     
-    # Регулярка для удаления цифр (1.), тире (-) и звездочек (*) в начале строки
+    # Регулярка для удаления символов
     marker_pattern = re.compile(r'^(\s*[-*>]|\d+\.)\s*')
 
     for line in lines:
         line_strip = line.strip()
         
-        # Начало блока (ищем 'Итоговые рекомендации' или 'Рекомендации по оптимизации')
         if line_strip.startswith("###") and "рекомендации" in line_strip.lower():
             in_block = True
             continue
         
-        # Если блок начался и дошли до конца или нового заголовка
+       
         if in_block and line_strip.startswith("---"):
             break
             
@@ -61,13 +55,11 @@ def extract_clean_recommendations(text: str) -> List[str]:
 async def seo_audit(
     url: str = Form(..., description="Введите URL страницы для SEO аудита")
 ):
-    """
-    Этот метод теперь возвращает И полный текст характеристик, И чистый список.
-    """
+   
     try:
         html = fetch_page(url)
         
-        # 2. Анализируем характеристики
+      
         metrics = analyze_html(html)
 
         # Генерируем ПОЛНЫЙ отчет от AI агента
