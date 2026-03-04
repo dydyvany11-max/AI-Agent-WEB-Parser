@@ -9,72 +9,69 @@ from crawler import fetch_page
 from analyzer import analyze_html
 from ai_agent import generate_audit
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 app = FastAPI(title="AI-Agent WEB-Parsing")
 
 class AuditResponse(BaseModel):
     audit: str = Field(..., title="Полный SEO аудит")
-    recommendations: List[str] = Field(..., title="Список рекомендаций")
+    recommendations: str = Field(..., title="Текст рекомендаций") 
     token_usage: Dict[str, Any] = Field(..., title="Статистика токенов")
 
-def extract_clean_recommendations(text: str) -> List[str]:
+def extract_single_text_recommendations(text: str) -> str:
+    collected = []
    
-    recommendations = []
+    junk_pattern = re.compile(r'[*#`_~-]') 
+  
+    number_pattern = re.compile(r'^\s*\d+\.\s*')
+
     lines = text.splitlines()
     in_block = False
-    
-    # Регулярка для удаления символов
-    marker_pattern = re.compile(r'^(\s*[-*>]|\d+\.)\s*')
 
     for line in lines:
         line_strip = line.strip()
         
-        if line_strip.startswith("###") and "рекомендации" in line_strip.lower():
+     
+        if "рекомендации" in line_strip.lower():
             in_block = True
             continue
-        
-       
-        if in_block and line_strip.startswith("---"):
-            break
             
         if in_block:
-            if not line_strip or line_strip.startswith("#"):
-                continue
             
-            clean_line = marker_pattern.sub('', line_strip)
-            clean_line = clean_line.replace("**", "").strip()
+            if line_strip.startswith("## ") and len(collected) > 0:
+                break
             
-            if len(clean_line) > 5:
-                recommendations.append(clean_line)
-                
-    return recommendations
+            clean = junk_pattern.sub('', line_strip)
+            clean = number_pattern.sub('', clean).strip()
+            
+            if len(clean) > 5:
+                collected.append(clean)
+    
+
+    if not collected:
+        for line in lines:
+            clean = junk_pattern.sub('', line).strip()
+            if len(clean) > 20:
+                collected.append(clean)
+
+ 
+    return " ".join(collected)
 
 @app.post("/seo-audit", response_model=AuditResponse)
-async def seo_audit(
-    url: str = Form(..., description="Введите URL страницы для SEO аудита")
-):
-   
+async def seo_audit(url: str = Form(..., description="URL страницы")):
     try:
         html = fetch_page(url)
-        
-      
         metrics = analyze_html(html)
-
-        # Генерируем ПОЛНЫЙ отчет от AI агента
         audit_text, usage = generate_audit(metrics)
 
-        recommendations = extract_clean_recommendations(audit_text)
+        
+        clean_recommendations = extract_single_text_recommendations(audit_text)
 
         return AuditResponse(
-            audit=audit_text,  
-            recommendations=recommendations,
+            audit=audit_text,
+            recommendations=clean_recommendations,
             token_usage=usage or {}
         )
-
     except Exception as e:
-        logging.error(f"Ошибка при SEO аудите: {e}")
+        logging.error(f"Ошибка: {e}")
         raise HTTPException(status_code=500, detail=str(e))
