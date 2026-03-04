@@ -1,73 +1,43 @@
-#FastApi с очисткой рекомендации и ручкой(endpoint)
-
-import logging
-import re
 from fastapi import FastAPI, Form, HTTPException
+from typing import Any, Dict, List
+from pydantic import BaseModel, Field
+import logging
+
 from crawler import fetch_page
 from analyzer import analyze_html
 from ai_agent import generate_audit
-from schema import AuditResponse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-app = FastAPI(title="AI-Agent WEB-Parsing")
+app = FastAPI(title="SEO Audit Service")
 
 
+class Recommendation(BaseModel):
+    action: str
+    details: str
+    priority: str
 
-def extract_single_text_recommendations(text: str) -> str:
-    collected = []
-   
-    junk_pattern = re.compile(r'[*#`_~-]') 
-  
-    number_pattern = re.compile(r'^\s*\d+\.\s*')
-
-    lines = text.splitlines()
-    in_block = False
-
-    for line in lines:
-        line_strip = line.strip()
-        
-     
-        if "рекомендации" in line_strip.lower():
-            in_block = True
-            continue
-            
-        if in_block:
-            
-            if line_strip.startswith("## ") and len(collected) > 0:
-                break
-            
-            clean = junk_pattern.sub('', line_strip)
-            clean = number_pattern.sub('', clean).strip()
-            
-            if len(clean) > 5:
-                collected.append(clean)
-    
-
-    if not collected:
-        for line in lines:
-            clean = junk_pattern.sub('', line).strip()
-            if len(clean) > 20:
-                collected.append(clean)
-
- 
-    return " ".join(collected)
+class AuditResponse(BaseModel):
+    audit: str = Field(..., title="Полный SEO аудит", description="Текстовый отчёт по странице")
+    recommendations: List[Recommendation] = Field(..., title="Рекомендации", description="Список конкретных SEO-действий")
+    token_usage: Dict[str, Any] = Field(..., title="Использованные токены")
 
 @app.post("/seo-audit", response_model=AuditResponse)
-async def seo_audit(url: str = Form(..., description="URL страницы")):
+async def seo_audit(url: str = Form(..., description="URL страницы для SEO аудита")):
     try:
         html = fetch_page(url)
         metrics = analyze_html(html)
-        audit_text, usage = generate_audit(metrics)
 
-        
-        clean_recommendations = extract_single_text_recommendations(audit_text)
+        parsed, usage = generate_audit(metrics)
+
+
+        recs = [Recommendation(**r) for r in parsed.get("recommendations", [])]
 
         return AuditResponse(
-            audit=audit_text,
-            recommendations=clean_recommendations,
+            audit=parsed.get("audit", ""),
+            recommendations=recs,
             token_usage=usage or {}
         )
     except Exception as e:
-        logging.error(f"Ошибка: {e}")
+        logging.error(f"Ошибка SEO аудита: {e}")
         raise HTTPException(status_code=500, detail=str(e))
