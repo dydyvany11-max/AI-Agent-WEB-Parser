@@ -1,5 +1,4 @@
 import requests
-import logging
 import json
 import re
 import os
@@ -35,7 +34,6 @@ def generate_audit(metrics: dict) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     try:
         token = get_access_token()
     except RequestException as exc:
-        logging.error("GigaChat auth unavailable: %s", exc)
         raise GigaChatUnavailableError(f"GigaChat auth unavailable: {exc}") from exc
 
     headers = {
@@ -87,7 +85,6 @@ def generate_audit(metrics: dict) -> Tuple[Dict[str, Any], Dict[str, Any]]:
             errors.append(f"{url}: {exc}")
 
     if data is None:
-        logging.error("GigaChat unavailable on all endpoints: %s", " | ".join(errors))
         raise GigaChatUnavailableError("GigaChat unavailable on all endpoints")
 
    
@@ -96,17 +93,8 @@ def generate_audit(metrics: dict) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     try:
         parsed = safe_json_parse(content)
     except Exception as exc:
-        logging.error("Invalid GigaChat JSON output: %s", exc)
         raise ValueError("GigaChat returned invalid JSON") from exc
 
     usage = data.get("usage", {})
-
-    if usage:
-        logging.info(
-            f"Token usage | Prompt: {usage.get('prompt_tokens')} | "
-            f"Completion: {usage.get('completion_tokens')} | Total: {usage.get('total_tokens')}"
-        )
-    else:
-        logging.warning("No token usage returned from API")
 
     return parsed, usage
