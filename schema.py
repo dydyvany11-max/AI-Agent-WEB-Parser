@@ -3,11 +3,6 @@
 from pydantic import BaseModel, Field
 from typing import Dict , Any, List
 
-class URLRequest(BaseModel):
-    url:str
-
-from pydantic import BaseModel
-from typing import List, Dict, Any
 
 
 class Recommendation(BaseModel):
@@ -17,7 +12,7 @@ class Recommendation(BaseModel):
 
 
 class AuditResponse(BaseModel):
-    audit: str
-    recommendations: List[Recommendation]
-    token_usage: Dict[str, Any]
+    audit: str = Field(..., title="Полный SEO аудит", description="Текстовый отчёт по странице")
+    recommendations: List[Recommendation] = Field(..., title="Рекомендации", description="Список конкретных SEO-действий")
+    token_usage: Dict[str, Any] = Field(..., title="Использованные токены")
 
